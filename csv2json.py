@@ -15,16 +15,13 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #  
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA 02110-1301, USA.
-#  
 #  
 import csv, json, time
 
+#Diccionary of keywords to make a field stations 
 dayKey = {0 : 'Mo', 1 : 'Tu', 2 : 'We', 3 : 'Th', 4 : 'Fr', 5 : 'Sa', 6 : 'Su'}
 
+#Read a CSV file and load stops in memory
 def readCsvFile(fileName):
     
     stops = []
@@ -37,7 +34,8 @@ def readCsvFile(fileName):
             stops.append(stop)
             
     return stops
-            
+
+#Process a row of CSV file 
 def readRow(row):
     
     data = {'ref' : row[0],
@@ -50,6 +48,7 @@ def readRow(row):
              
     return data
     
+#Agroup routes services days
 def serviceDays(days):
     
     start = 0
@@ -66,6 +65,7 @@ def serviceDays(days):
     
     return services
     
+# Receive stops  and create a structure of services in memory
 def giveJsonFormat(stops):
     
     trips = groupTrips(stops)
@@ -73,87 +73,8 @@ def giveJsonFormat(stops):
     services = groupByReference(routes)
     
     return services
-    
-def groupByReference(routes):
-    
-    services = []
-    
-    for route in routes:
-        servicePosition = searchReference(route, services)
-        services = addRoute(route, services, servicePosition)
-    
-    return services
-    
-def searchReference(route, services):
-    
-    size = len(services)
-    position = -1
-    service = 0
-    
-    while service < size:
-        currentService = services[service]
-        if currentService[0] == route['ref']:
-            position = service
-            service = size+1
-        else:
-            service += 1
-            
-    return position
-    
-def addRoute(route, services, servicePosition):
-    
-    if servicePosition == -1:
-        services.append([route['ref'],
-                        [{'from' : route['from'],
-                                      'services' : route['services'],
-                                      'stations' : route['stations'],
-                                      'times' : route['times'],
-                                      'to' : route['to']}]])
-    else:
-        services[servicePosition][1].append({'from' : route['from'],
-                                                     'services' : route['services'],
-                                                     'stations' : route['stations'],
-                                                     'times' : route['times'],
-                                                     'to' : route['to']})
-    
-    return services
-    
-def groupRoutes(trips):
-    
-    routes = []
-    
-    for trip in trips:
-        routePosition = searchRoute(trip, routes)
-        routes = addTrip(trip, routes, routePosition)
-    
-    return routes
-    
-def searchRoute(trip, routes):
-    
-    size = len(routes)
-    position = -1
-    route = 0
-    
-    while route < size:
-        currentRoute = routes[route]
-        if trip['from'] == currentRoute['from'] and trip['to'] == currentRoute['to'] and trip['ref'] == currentRoute['ref'] and trip['services'][0] == currentRoute['services'][0]:
-            position = route
-            route = size+1
-        else:
-            route += 1
-            
-    return position
-    
-def addTrip(trip, routes, routePosition):
-    
-    if routePosition == -1:
-        trip['times'] = [trip['times']]
-        routes.append(trip)
-    else:
-        routes[routePosition]['times'].append(trip['times'])
-    
-    return routes
-    
+
+#From stops create trips
 def groupTrips(stops):
     
     trips = []
@@ -164,6 +85,7 @@ def groupTrips(stops):
     
     return trips
     
+#Localize if a trip exist in the structure and if not returns -1
 def searchTrip(stop, trips):
     
     size = len(trips)
@@ -180,6 +102,7 @@ def searchTrip(stop, trips):
             
     return position
 
+#Merge stops with the same trip
 def addStop(stop, trips, tripPosition):
     
     if tripPosition == -1:
@@ -189,7 +112,94 @@ def addStop(stop, trips, tripPosition):
         trips[tripPosition]['times'].append(stop['times'][0])
     
     return trips
+
+#From trips create routes
+def groupRoutes(trips):
     
+    routes = []
+    
+    for trip in trips:
+        routePosition = searchRoute(trip, routes)
+        routes = addTrip(trip, routes, routePosition)
+    
+    return routes
+ 
+#Localize if a route exist in the structure and if not returns -1
+def searchRoute(trip, routes):
+    
+    size = len(routes)
+    position = -1
+    route = 0
+    
+    while route < size:
+        currentRoute = routes[route]
+        if trip['from'] == currentRoute['from'] and trip['to'] == currentRoute['to'] and trip['ref'] == currentRoute['ref'] and trip['services'][0] == currentRoute['services'][0]:
+            position = route
+            route = size+1
+        else:
+            route += 1
+            
+    return position
+    
+#Merge trips of the same route
+def addTrip(trip, routes, routePosition):
+    
+    if routePosition == -1:
+        trip['times'] = [trip['times']]
+        routes.append(trip)
+    else:
+        routes[routePosition]['times'].append(trip['times'])
+    
+    return routes
+    
+#From routes and references create services
+def groupByReference(routes):
+    
+    services = []
+    
+    for route in routes:
+        servicePosition = searchReference(route, services)
+        services = addRoute(route, services, servicePosition)
+    
+    return services
+    
+#Localize if a services exist in the structure and if not returns -1
+def searchReference(route, services):
+    
+    size = len(services)
+    position = -1
+    service = 0
+    
+    while service < size:
+        currentService = services[service]
+        if currentService[0] == route['ref']:
+            position = service
+            service = size+1
+        else:
+            service += 1
+            
+    return position
+    
+#Merge routes with the same reference 
+def addRoute(route, services, servicePosition):
+    
+    if servicePosition == -1:
+        services.append([route['ref'],
+                        [{'from' : route['from'],
+                                   'services' : route['services'],
+                                   'stations' : route['stations'],
+                                   'times' : route['times'],
+                                   'to' : route['to']}]])
+    else:
+        services[servicePosition][1].append({'from' : route['from'],
+                                                     'services' : route['services'],
+                                                     'stations' : route['stations'],
+                                                     'times' : route['times'],
+                                                     'to' : route['to']})
+    
+    return services
+    
+#Write data to a Json file
 def writeJsonFile(services):
     
     timesTable = generateTimesTable(services)
@@ -198,6 +208,7 @@ def writeJsonFile(services):
     with open("timestable.json", "w") as jsonFile:
         jsonFile.write(timesTableFormat)
 
+#Create a structure with the format of timestable.json
 def generateTimesTable(services):
     ref = 0
     timesTable = {'update': time.strftime('%d.%m.%Y'),
@@ -209,6 +220,7 @@ def generateTimesTable(services):
             timesTable['lines'][service[ref]].append(service[1]) 
     return timesTable
     
+#The script main funtion
 def csv2json(filename):
     stops = readCsvFile(filename)
     services = giveJsonFormat(stops)
