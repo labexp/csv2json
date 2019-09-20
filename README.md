@@ -3,7 +3,7 @@
 How to use: 
 
 Open the terminal, ubicate the folder where you have csv2json. Write in 
-terminal "python3 csv2json <path_of_file> " ,<path_of_file> is the place where the .csv to read is ubicated. 
+terminal python3 csv2json <path_of_file>, <path_of_file> is the place where the .csv to read is ubicated. 
 
 CSV Format: 
 
